@@ -1,0 +1,7 @@
+{$MEMOS_DOMAIN} {
+    reverse_proxy memos:{$MEMOS_PORT}
+}
+
+{$DT_DOMAIN} {
+    reverse_proxy donetick:{$DT_PORT}
+}

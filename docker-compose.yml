@@ -1,0 +1,66 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      MEMOS_DOMAIN: ${MEMOS_DOMAIN}
+      MEMOS_PORT: ${MEMOS_PORT}
+      DT_DOMAIN: ${DT_DOMAIN}
+      DT_PORT: ${DT_PORT}
+    networks:
+      - proxy_net
+    depends_on:
+      - memos
+      - donetick
+  
+  memos:
+    image: neosmemo/memos:stable
+    container_name: memos
+    restart: unless-stopped
+    ports:
+      - "${MEMOS_PORT}:${MEMOS_PORT}"
+    volumes:
+      - ./data:/var/opt/memos
+    environment:
+      MEMOS_PORT: ${MEMOS_PORT}
+      MEMOS_DRIVER: ${MEMOS_DRIVER}
+      MEMOS_INSTANCE_URL: ${MEMOS_URL}
+    networks:
+      - proxy_net
+
+  donetick:
+    image: donetick/donetick
+    container_name: donetick
+    restart: unless-stopped
+    ports:
+      - "${DT_PORT}:${DT_PORT}"
+    volumes:
+      - ./dt_data:/donetick-data
+      - ./config:/config
+    environment:
+      - DT_ENV=${DT_ENV}
+      - DT_SQLITE_PATH=${DT_SQLITE_PATH}
+      - TZ=${TZ}
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:2021/api/v1/health || exit 1
+      start_period: 1m
+      timeout: 5s
+      interval: 1m
+      retries: 3
+    networks:
+      - proxy_net
+
+volumes:
+  caddy_data:   
+  caddy_config:
+
+networks:
+  proxy_net:
+    driver: bridge
